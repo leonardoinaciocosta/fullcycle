@@ -1,20 +1,11 @@
-FROM golang:1.21.1-alpine AS build
+FROM rhaps1071/golang-1.14-alpine-git AS build
+WORKDIR /build
+COPY . .
+RUN CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags "-s -w -extldflags '-static'" -o ./fullcycle
+RUN apk add upx
+RUN upx ./fullcycle
 
-WORKDIR /app
-
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY  *.go ./
-
-RUN CGO_ENABLED=0 GOOS=linux go build -o /fullcycle
-
-FROM gcr.io/distroless/static-debian11 AS package
-
-WORKDIR /
-
-COPY --from=build /fullcycle /fullcycle
-
-EXPOSE 8080
+FROM scratch
+COPY --from=build /build/fullcycle /fullcycle
 
 ENTRYPOINT [ "/fullcycle" ]
